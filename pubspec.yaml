@@ -9,7 +9,8 @@ environment:
 
 dependencies:
   aws_dynamodb_api: ^2.0.0
-  aws_lambda_dart_runtime_ns: ^0.0.13
+  aws_lambda_dart_runtime_ns: 
+    git:  https://github.com/minia68/aws-lambda-dart-runtime-ns.git
   datasource:
     git: https://github.com/minia68/mv-tr__datasource.git
   dio: ^5.6.0
