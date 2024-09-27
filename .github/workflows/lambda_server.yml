@@ -1,0 +1,39 @@
+name: Lambda server test, build, deploy
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+    
+jobs:
+  test_build_deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dart-lang/setup-dart@v1
+      # - name: Test
+      #   run: |
+      #     sudo npm install -g parse-server mongodb-runner
+      #     pub get
+      #     sh ./script/run_tests.sh      
+      - name: Test
+        run: |
+          dart pub get
+          dart test 
+      - name: Build
+        run: |
+          mkdir build
+          dart pub get
+          dart compile exe bin/main.dart -o build/bootstrap
+          zip -j build/lambda.zip build/bootstrap
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: us-east-2
+      - name: Deploy
+        run: |
+            aws lambda update-function-configuration --function-name moviesTrackerLoad --handler movies_load.handler --timeout 900 --runtime provided --environment "Variables={TMDB_API_KEY=${{ secrets.TMDB_API_KEY }}}"
+            aws lambda update-function-code --function-name moviesTrackerLoad --zip-file fileb://build/lambda.zip
