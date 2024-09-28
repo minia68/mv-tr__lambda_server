@@ -9,7 +9,7 @@ import 'package:logging/logging.dart';
 import 'package:movie_info_provider/movie_info_provider.dart';
 
 void main(List<String> arguments) async {
-  Logger.root.level = Level.ALL; // defaults to Level.INFO
+  Logger.root.level = Level.WARNING;
   Logger.root.onRecord.listen((record) {
     if (record.error != null) {
       stderr
