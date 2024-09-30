@@ -3,6 +3,8 @@
 import 'package:datasource/datasource.dart';
 import 'package:domain/domain.dart';
 import 'package:lambda_server/load_movies_handler.dart';
+import 'package:lambda_server/notification_service.dart';
+import 'package:lambda_server/watchlist_service.dart';
 import 'package:mocktail/mocktail.dart';
 import 'package:movie_info_provider/movie_info_provider.dart';
 import 'package:test/test.dart';
@@ -12,46 +14,33 @@ void main() {
     final mip = MockMovieInfoProvider();
     final ds = MockDataSource();
     final handler = LoadMoviesHandler(
-      tmdbApiKey: null,
-      ds: ds,
-      moviesProvider: (_, __) => mip,
+      datasource: ds,
+      moviesProvider: (_) => mip,
+      notificationService: MockNotificationService(),
+      watchlistService: MockWatchlistService(),
     );
 
     when(() => ds.getSettings()).thenAnswer((_) async => null);
     expect(() => handler.loadMovies(), throwsA(isA<Exception>()));
   });
 
-  test('loadMovies tmdbApiKey is null', () async {
+  test('loadMovies imageBaseUrl from settings', () async {
     final mip = MockMovieInfoProvider();
     final ds = MockDataSource();
+    final ns = MockNotificationService();
+    final ws = MockWatchlistService();
     final handler = LoadMoviesHandler(
-      tmdbApiKey: null,
-      ds: ds,
-      moviesProvider: (_, __) => mip,
+      datasource: ds,
+      moviesProvider: (_) => mip,
+      notificationService: ns,
+      watchlistService: ws,
     );
 
     when(() => ds.getSettings()).thenAnswer(
       (_) async => Settings(
-        tmdbApiKey: null,
-        imageBaseUrl: null,
-      ),
-    );
-    expect(() => handler.loadMovies(), throwsA(isA<Exception>()));
-  });
-
-  test('loadMovies tmdbApiKey imageBaseUrl from settings', () async {
-    final mip = MockMovieInfoProvider();
-    final ds = MockDataSource();
-    final handler = LoadMoviesHandler(
-      tmdbApiKey: 'tmdbApiKey',
-      ds: ds,
-      moviesProvider: (_, tmdbApiKey) => mip..tmdbApiKey = tmdbApiKey,
-    );
-
-    when(() => ds.getSettings()).thenAnswer(
-      (_) async => Settings(
-        tmdbApiKey: 'tmdbApiKey1',
         imageBaseUrl: 'imageBaseUrl',
+        chatId: null,
+        watchlistId: null,
       ),
     );
     when(() => ds.updateMovies(any(), any())).thenAnswer(
@@ -67,22 +56,27 @@ void main() {
     await handler.loadMovies();
 
     verify(() => ds.updateMovies('imageBaseUrl', [])).called(1);
-    expect(mip.tmdbApiKey, equals('tmdbApiKey1'));
+    verifyNever(() => ns.sendMessage(any(), any()));
+    verifyNever(() => ws.getListMoviesIds(any()));
   });
 
   test('loadMovies', () async {
     final mip = MockMovieInfoProvider();
     final ds = MockDataSource();
+    final ns = MockNotificationService();
+    final ws = MockWatchlistService();
     final handler = LoadMoviesHandler(
-      tmdbApiKey: 'tmdbApiKey',
-      ds: ds,
-      moviesProvider: (_, tmdbApiKey) => mip..tmdbApiKey = tmdbApiKey,
+      datasource: ds,
+      moviesProvider: (_) => mip,
+      notificationService: ns,
+      watchlistService: ws,
     );
 
     when(() => ds.getSettings()).thenAnswer(
       (_) async => Settings(
-        tmdbApiKey: null,
         imageBaseUrl: null,
+        chatId: 'chatId',
+        watchlistId: 'watchlistId',
       ),
     );
     when(() => ds.updateMovies(any(), any())).thenAnswer(
@@ -136,18 +130,26 @@ void main() {
     when(() => mip.getMovies()).thenAnswer(
       (_) async => movies,
     );
+    when(() => ws.getListMoviesIds(any())).thenAnswer((_) async => ['1']);
+    when(() => ns.sendMessage(any(), any())).thenAnswer((_) async {});
 
     await handler.loadMovies();
 
     verify(() => ds.updateMovies('getImageBasePath', movies)).called(1);
-    expect(mip.tmdbApiKey, equals('tmdbApiKey'));
+    verify(() => ws.getListMoviesIds('watchlistId')).called(1);
+    verify(
+      () => ns.sendMessage(
+        'chatId',
+        '<a href="mvtr://mvtr.minia.ru/#/movie/1">title</a>',
+      ),
+    ).called(1);
   });
 }
 
 class MockDataSource extends Mock implements DataSource {}
 
-class MockMovieInfoProvider extends Mock implements MovieInfoProvider {
-  MockMovieInfoProvider([this.tmdbApiKey]);
+class MockMovieInfoProvider extends Mock implements MovieInfoProvider {}
 
-  String? tmdbApiKey;
-}
+class MockNotificationService extends Mock implements NotificationService {}
+
+class MockWatchlistService extends Mock implements WatchlistService {}

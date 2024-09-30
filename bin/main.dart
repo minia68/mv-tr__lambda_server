@@ -3,10 +3,15 @@ import 'dart:io';
 import 'package:aws_dynamodb_api/dynamodb-2012-08-10.dart';
 import 'package:aws_lambda_dart_runtime_ns/aws_lambda_dart_runtime_ns.dart';
 import 'package:datasource/datasource.dart';
+import 'package:dio/dio.dart';
 import 'package:domain/src/settings.dart';
 import 'package:lambda_server/load_movies_handler.dart';
+import 'package:lambda_server/notification_service.dart';
+import 'package:lambda_server/watchlist_service.dart';
 import 'package:logging/logging.dart';
 import 'package:movie_info_provider/movie_info_provider.dart';
+
+final _logger = Logger('WatchlistService');
 
 void main(List<String> arguments) async {
   Logger.root.level = Level.WARNING;
@@ -21,6 +26,10 @@ void main(List<String> arguments) async {
     }
   });
 
+  final tmdbApiKey = Platform.environment['TMDB_API_KEY']!;
+  final dio = Dio();
+  dio.interceptors.add(LogInterceptor(logPrint: _logger.config));
+
   final handler = FunctionHandler(
     name: Platform.environment['_HANDLER']!,
     action: (ctx, event) async {
@@ -33,24 +42,39 @@ void main(List<String> arguments) async {
         ),
       );
       final handler = LoadMoviesHandler(
-        tmdbApiKey: Platform.environment['TMDB_API_KEY'],
-        ds: DynamodbDataSource(db),
-        moviesProvider: (settings, tmdbApiKey) => MovieInfoProvider(
+        datasource: DynamodbDataSource(db),
+        moviesProvider: (settings) => MovieInfoProvider(
           settings.trackerSettings.map<TrackerDataSource>((e) {
             switch (e.trackerType) {
               case TrackerType.rutor:
-                return RutorTrackerDataSource(baseUrl: e.trackerUrl);
+                return RutorTrackerDataSource(
+                  baseUrl: e.trackerUrl,
+                  query: e.trackerRequest,
+                  searchLimit: e.torrentsLimit,
+                );
               case TrackerType.nnmclub:
-                return NnmClubTrackerDatasource(baseUrl: e.trackerUrl);
+                return NnmClubTrackerDatasource(
+                  baseUrl: e.trackerUrl,
+                  query: e.trackerRequest,
+                  searchLimit: e.torrentsLimit,
+                );
             }
           }).toList(),
           DummyRatingDatasource(),
           TmdbDataSource(tmdbApiKey),
-          settings.trackerSettings.map((e) => e.trackerRequest).toList(),
+        ),
+        watchlistService: TmdbWatchlistService(
+          tmdbApiKey: tmdbApiKey,
+          dio: dio,
+        ),
+        notificationService: TelegramNotificationService(
+          botToken: Platform.environment['TELEGRAM_BOT_TOKEN'] ?? '',
+          dio: dio,
         ),
       );
       await handler.loadMovies();
       db.close();
+      dio.close();
       return InvocationResult(requestId: ctx.requestId);
     },
   );
