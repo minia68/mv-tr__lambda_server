@@ -22,7 +22,7 @@ void main(List<String> arguments) async {
       NnmClubTrackerDatasource(
         baseUrl: 'https://nnmclub.to/forum',
         query: '/tracker.php?f=954&nm=2160p&o=10',
-      )
+      ),
     ],
     //[RutorTrackerDataSource(baseUrl: 'https://rutor.info')],
     DummyRatingDatasource(),

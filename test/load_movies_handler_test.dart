@@ -140,7 +140,7 @@ void main() {
     verify(
       () => ns.sendMessage(
         'chatId',
-        '<a href="mvtr://mvtr.minia.ru/#/movie/1">title</a>',
+        '<a href="https://minia68.github.io/index1.html?1">title</a>',
       ),
     ).called(1);
   });
