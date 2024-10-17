@@ -54,7 +54,7 @@ class LoadMoviesHandler {
         final movie = movies[idx];
         await _notificationService.sendMessage(
           chatId,
-          '<a href="mvtr://mvtr.minia.ru/#/movie/$id">${movie.title}</a>',
+          '<a href="https://minia68.github.io/index1.html?$id">${movie.title}</a>',
         );
       }
     }

@@ -60,7 +60,10 @@ void main(List<String> arguments) async {
                 );
             }
           }).toList(),
-          DummyRatingDatasource(),
+          KpunRatingDatasource(
+            apiKey: Platform.environment['KPUN_API_KEY']!,
+            dio: dio,
+          ),
           TmdbDataSource(tmdbApiKey),
         ),
         watchlistService: TmdbWatchlistService(

@@ -35,5 +35,5 @@ jobs:
           aws-region: us-east-2
       - name: Deploy
         run: |
-            aws lambda update-function-configuration --function-name moviesTrackerLoad --handler movies_load.handler --timeout 900 --runtime provided --environment "Variables={TMDB_API_KEY=${{ secrets.TMDB_API_KEY }},TELEGRAM_BOT_TOKEN=${{ secrets.TELEGRAM_BOT_TOKEN }}}"
+            aws lambda update-function-configuration --function-name moviesTrackerLoad --handler movies_load.handler --timeout 900 --runtime provided --environment "Variables={TMDB_API_KEY=${{ secrets.TMDB_API_KEY }},TELEGRAM_BOT_TOKEN=${{ secrets.TELEGRAM_BOT_TOKEN }},KPUN_API_KEY=${{ secrets.KPUN_API_KEY }}}"
             aws lambda update-function-code --function-name moviesTrackerLoad --zip-file fileb://build/lambda.zip

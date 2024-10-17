@@ -20,7 +20,7 @@ class TelegramNotificationService implements NotificationService {
     final response = await _dio.get<Map<String, dynamic>>(
       'https://api.telegram.org/bot$_botToken/sendMessage',
       queryParameters: {
-        'chat_id': chatId,//843254883
+        'chat_id': chatId,
         'text': message,
         'parse_mode': 'HTML',
       },
